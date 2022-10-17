@@ -1,0 +1,98 @@
+{
+  "$schema": "https://raw.githubusercontent.com/BohemianCoding/SketchAPI/develop/docs/sketch-plugin-manifest-schema.json",
+  "icon": "icon.png",
+  "name" : "ingescape",
+  "identifier" : "com.ingescape.sketch",
+  "version" : "1.0",
+  "description" : "Exports a Sketch file to an Ingescape Pivot format for code generation in Qt/QML, etc. to be used in Ingescape Circle",
+  "authorEmail" : "contact@ingescape.com",
+  "author" : "Ingenuity i/o",
+  "commands": [
+    {
+        "script" : "main.js",
+        "handler" : "onOpenFileAndExportWholeAsXml",
+        "name" : "Open file & export it",
+        "identifier" : "com.ingescape.sketch.openFileAndExportWholeAsXml"
+      },
+    {
+      "script" : "main.js",
+      "handler" : "onExportWholeAsQml",
+      "shortcut" : "command alt q",
+      "name" : "Export library and app as Qt/QML pivot files",
+      "identifier" : "com.ingescape.sketch.export_as_qml"
+    },
+    {
+      "script" : "main.js",
+      "handler" : "onExportWholeAsArinc661Part2",
+      "name" : "Export library and app as ARINC661 Part 2 pivot files",
+      "identifier" : "com.ingescape.sketch.export_as_arinc661part2"
+    },
+    {
+      "script" : "main.js",
+      "handler" : "onExportWholeAsXml",
+      "shortcut" : "command alt e",
+      "name" : "Export library and app as XML",
+      "identifier" : "com.ingescape.sketch.export_as_xml"
+    },
+    {
+      "script" : "main.js",
+      "handler" : "onExportLibraryAsXml",
+      "shortcut" : "command alt l",
+      "name" : "Export library as XML",
+      "identifier" : "com.ingescape.sketch.export_library_as_xml"
+    },
+    {
+      "script" : "main.js",
+      "handler" : "onExportApplicationAsXml",
+      "shortcut" : "command alt a",
+      "name" : "Export application as XML",
+      "identifier" : "com.ingescape.sketch.export_app_as_xml"
+    },
+    {
+      "script" : "main.js",
+      "handler" : "onExportSelectedLayersAsPNG",
+      "name" : "Export selected layers as PNG",
+      "identifier" : "com.ingescape.sketch.export_selectedlayers_as_png"
+    },
+    {
+      "script" : "main.js",
+      "handler" : "onExportSelectedLayersAsSVG",
+      "name" : "Export selected layers as SVG",
+      "identifier" : "com.ingescape.sketch.export_selectedlayers_as_svg"
+    },
+    {
+      "script" : "main.js",
+      "handler" : "onExportSelectedLayersWithUserPredefinedExportOptions",
+      "name" : "Export selected layers based on export options",
+      "identifier" : "com.ingescape.sketch.export_selectedlayers_based_on_export_options"
+    },
+    {
+      "script" : "main.js",
+      "handler" : "onExportFonts",
+      "name" : "Export fonts",
+      "identifier" : "com.ingescape.sketch.export_fonts"
+    }
+  ],
+  "menu": {
+    "title": "ingescape",
+    "isRoot": false,
+    "items": [
+      "com.ingescape.sketch.export_as_xml",
+      "com.ingescape.sketch.export_library_as_xml",
+      "com.ingescape.sketch.export_app_as_xml",
+      "-",
+      "com.ingescape.sketch.export_as_qml",
+      "-",
+      {
+        "title": "⚙️ Debug utils",
+        "items": [
+            "com.ingescape.sketch.export_fonts",
+            "-",
+            "com.ingescape.sketch.export_selectedlayers_as_png",
+            "com.ingescape.sketch.export_selectedlayers_as_svg",
+            "com.ingescape.sketch.export_selectedlayers_based_on_export_options"
+        ]
+      }
+    ]
+  }
+}
