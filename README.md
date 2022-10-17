@@ -1,10 +1,10 @@
-# sketch2qml
+# Ingescape Sketch
 
 ## Installation
 
-- [Download](../../releases/latest/download/sketch2qml.sketchplugin.zip) the latest release of the plugin
+- [Download](../../releases/latest/download/ingescape.sketchplugin.zip) the latest release of the plugin
 - Un-zip
-- Double-click on sketch2qml.sketchplugin
+- Double-click on ingescape.sketchplugin
 
 ## Development Guide
 
