@@ -1,8 +1,10 @@
 # Ingescape Sketch
 
+A Sketch plugin that exports a Sketch file to an Ingescape Pivot format for code generation in Qt/QML, etc. to be used in [Ingescape Circle](https://ingescape.com/circle/)
+
 ## Installation
 
-- [Download](../../releases/latest/download/ingescape.sketchplugin.zip) the latest release of the plugin
+- [👉 Download the latest release of the plugin](../../releases/latest/download/ingescape.sketchplugin.zip) 
 - Un-zip
 - Double-click on ingescape.sketchplugin
 
