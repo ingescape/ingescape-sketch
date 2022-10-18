@@ -6,7 +6,7 @@ export function onShowAboutDialog(context) {
     dialog.setInformativeText("This plugin exports a Sketch file to an Ingescape Pivot format for code generation in Qt/QML, etc. to be used in Ingescape Circle");
     dialog.icon = icon;
     dialog.addButtonWithTitle("Get Circle");
-    dialog.addButtonWithTitle("Cancel");
+    dialog.addButtonWithTitle("Close");
 
     let responseCode = dialog.runModal();
     if (responseCode == NSAlertFirstButtonReturn) {
