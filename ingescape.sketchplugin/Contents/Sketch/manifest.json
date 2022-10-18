@@ -16,37 +16,30 @@
     },
     {
       "script": "main.js",
-      "handler": "onExportWholeAsQml",
-      "shortcut": "command alt q",
-      "name": "Export library and app as Qt/QML pivot files",
-      "identifier": "com.ingescape.sketch.export_as_qml"
-    },
-    {
-      "script": "main.js",
-      "handler": "onExportWholeAsArinc661Part2",
-      "name": "Export library and app as ARINC661 Part 2 pivot files",
-      "identifier": "com.ingescape.sketch.export_as_arinc661part2"
-    },
-    {
-      "script": "main.js",
       "handler": "onExportWholeAsXml",
       "shortcut": "command alt e",
-      "name": "Export library and app as XML",
+      "name": "Export library and app as Qt/QML pivot files",
       "identifier": "com.ingescape.sketch.export_as_xml"
     },
     {
       "script": "main.js",
       "handler": "onExportLibraryAsXml",
       "shortcut": "command alt l",
-      "name": "Export library as XML",
+      "name": "Export library as Qt/QML pivot files",
       "identifier": "com.ingescape.sketch.export_library_as_xml"
     },
     {
       "script": "main.js",
       "handler": "onExportApplicationAsXml",
       "shortcut": "command alt a",
-      "name": "Export application as XML",
+      "name": "Export application as Qt/QML pivot files",
       "identifier": "com.ingescape.sketch.export_app_as_xml"
+    },
+    {
+      "script": "main.js",
+      "handler": "onShowAboutDialog",
+      "name": "About",
+      "identifier": "com.ingescape.sketch.about"
     },
     {
       "script": "main.js",
@@ -81,7 +74,7 @@
       "com.ingescape.sketch.export_library_as_xml",
       "com.ingescape.sketch.export_app_as_xml",
       "-",
-      "com.ingescape.sketch.export_as_qml",
+      "com.ingescape.sketch.about",
       "-",
       {
         "title": "⚙️ Debug utils",

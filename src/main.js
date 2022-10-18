@@ -1,30 +1,16 @@
-let circleURL = "https://ingescape.com/circle/";
-let circleAppPath = "/Applications/Ingescape/Ingescape-Circle.app";
-let gslExe = circleAppPath + "/Contents/agents/gsl/gsl";
-let gslNotAvailableErrorMessage = "Ingescape Circle is not installed in /Applications";
-let gslScriptDir = "~/Documents/Ingescape/scripts/utils/";
-
-let libraryQmlScript = "sketch2QmlLibrary.gsl";
-let appQmlScript = "sketch2QmlApp.gsl";
-
-let libraryArinc661Script = "sketch2Arinc661Library.gsl";
-let appArinc661Script = "sketch2Arinc661App.gsl";
-
-
-export function showGetCircleDialog(context) {
+export function onShowAboutDialog(context) {
     let iconPath = context.plugin.urlForResourceNamed('icon.png').path();
     let icon = NSImage.alloc().initByReferencingFile(iconPath);
     let dialog = NSAlert.alloc().init();
-    dialog.setMessageText("Ingescape Circle not found");
-    dialog.setInformativeText("Sketch2QML requires Ingescape Circle to export " + (targetIsArinc661Part2 ? "ARINC 661 Part2 files" : "QML files") 
-                              +"\n\nYou must install Ingescape Circle first");
+    dialog.setMessageText("Ingescape plugin");
+    dialog.setInformativeText("This plugin exports a Sketch file to an Ingescape Pivot format for code generation in Qt/QML, etc. to be used in Ingescape Circle");
     dialog.icon = icon;
     dialog.addButtonWithTitle("Get Circle");
     dialog.addButtonWithTitle("Cancel");
 
     let responseCode = dialog.runModal();
     if (responseCode == NSAlertFirstButtonReturn) {
-        NSWorkspace.sharedWorkspace().openURL(NSURL.URLWithString(circleURL));
+        NSWorkspace.sharedWorkspace().openURL(NSURL.URLWithString("https://ingescape.com/circle/"));
     }  
 }
 
@@ -45,7 +31,7 @@ export function onOpenFileAndExportWholeAsXml(context) {
                 console.warn("Can't open file ", filePath, true)
             }
             else {
-                exportWhole(context, false, false, fileDir, false);
+                exportWhole(context, fileDir, false);
                 let document = require('sketch/dom').getSelectedDocument();
                 document.close();
             }
@@ -93,7 +79,7 @@ export function onExportLibraryAsXml(context) {
     Utils.createDirectoryIfNeeded(path + libraryFontsSubDir);
     Utils.forceNewDirectory(path + libraryImagesSubDir);
 
-    UI.message("⚙️ Exporting library as XML. Please wait...");
+    UI.message("⚙️ Exporting library as Ingescape Pivot format. Please wait...");
 
     let documentContext = Tree.initDocumentContext();
 
@@ -199,7 +185,7 @@ export function onExportApplicationAsXml(context) {
     Utils.forceNewDirectory(path + appImagesSubDir);
  
 
-    UI.message("⚙️ Exporting application as XML. Please wait...");
+    UI.message("⚙️ Exporting application as Ingescape Pivot format. Please wait...");
 
     let documentContext = Tree.initDocumentContext();
 
@@ -281,7 +267,7 @@ export function onExportApplicationAsXml(context) {
 };
 
 
-function exportWhole(context, runGslCommands, targetIsArinc661Part2, exportDir = "", interactionsAllowed = true) {
+function exportWhole(context, exportDir = "", interactionsAllowed = true) {
     let Tree = require("./tree.js");
     let Xml = require("./xml.js");
     let Utils = require("./utils.js");
@@ -289,16 +275,6 @@ function exportWhole(context, runGslCommands, targetIsArinc661Part2, exportDir =
     let document = sketch.getSelectedDocument();
     let settings = require("sketch/settings");
     let UI = require('sketch/ui');
-
-    if (!document.path) {
-        UI.alert("Sketch2QML: can not export " + (runGslCommands ? (targetIsArinc661Part2 ? "ARINC 661 Part2 files" : "QML files") : "XML files"), "You must save your Sketch file first")
-        return;
-    }
-
-    if (runGslCommands && interactionsAllowed && !Utils.fileExists(gslExe)) {
-        showGetCircleDialog(context, targetIsArinc661Part2);
-        return;
-    }
 
     let path = (interactionsAllowed && (exportDir === "")) ? Utils.chooseFolder() : exportDir;
     if (!path){
@@ -327,8 +303,8 @@ function exportWhole(context, runGslCommands, targetIsArinc661Part2, exportDir =
     Utils.forceNewDirectory(path + libraryImagesSubDir);
         
 
-    let maxNumberOfSteps = (runGslCommands ? 4 : 2);
-    UI.message("⚙️ [1/" + maxNumberOfSteps+ "] Exporting library as XML. Please wait...");
+    let maxNumberOfSteps = 2;
+    UI.message("⚙️ [1/" + maxNumberOfSteps+ "] Exporting library as Ingescape Pivot format. Please wait...");
 
     let documentContext = Tree.initDocumentContext();
 
@@ -389,7 +365,7 @@ function exportWhole(context, runGslCommands, targetIsArinc661Part2, exportDir =
 
     
     //export app
-    UI.message("⚙️ [2/" + maxNumberOfSteps + "] Exporting application as XML. Please wait...");
+    UI.message("⚙️ [2/" + maxNumberOfSteps + "] Exporting application as Ingescape Pivot format. Please wait...");
 
     let xmlAppRoot = NSXMLElement.alloc().initWithName("app");
     Xml.xmlAddAttributesToElement(xmlAppRoot, ["name", appName, "sketchVersion", settings.version.sketch]);
@@ -459,44 +435,17 @@ function exportWhole(context, runGslCommands, targetIsArinc661Part2, exportDir =
 
     Xml.exportXMLToPath(path+appName+"_app.xml", xmlAppRoot);
 
-    let exportSucceeded = true;
-    if (runGslCommands)
-    {
-        if (Utils.fileExists(gslExe))
-        {
-            UI.message("⚙️ [3/" + maxNumberOfSteps + "] Generating code from our XML library. Please wait...");
-            let libraryGslScript = gslScriptDir + (targetIsArinc661Part2 ? libraryArinc661Script : libraryQmlScript);
-            Utils.runCommand(gslExe, ["-script:" + Utils.expandTildeInPath(libraryGslScript), path+libraryName+"_library.xml"], path);
-            
-            UI.message("⚙️ [4/" + maxNumberOfSteps + "] Generating code from ou XML application. Please wait...");
-            let appGslScript = gslScriptDir + (targetIsArinc661Part2 ? appArinc661Script : appQmlScript);
-            Utils.runCommand(gslExe, ["-script:" + Utils.expandTildeInPath(appGslScript),  path+appName+"_app.xml"], path);
-        }
-        else
-        {
-            exportSucceeded = false;
-            UI.alert("Sketch2QML: can not generate code from XML", gslNotAvailableErrorMessage);
-        }
-    }
-
     if (interactionsAllowed) 
     {
         Utils.playSoundNamed(Utils.Sounds.Glass);
-        UI.message((exportSucceeded ? "✅" : "❌") + " Export of app and lib completed to " + path);
+        UI.message("✅ Export of app and lib completed to " + path);
         Utils.showInFinder(path);
     }
 };
 
-export function onExportWholeAsQml(context) {
-    exportWhole(context, true, false);
-};
-
-export function onExportWholeAsArinc661Part2(context) {
-    exportWhole(context, true, true);
-};
 
 export function onExportWholeAsXml(context) {
-    exportWhole(context, false, false);
+    exportWhole(context);
 };
 
 

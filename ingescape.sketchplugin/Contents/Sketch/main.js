@@ -97,43 +97,32 @@ var exports =
 /*!*********************!*\
   !*** ./src/main.js ***!
   \*********************/
-/*! exports provided: showGetCircleDialog, onOpenFileAndExportWholeAsXml, onExportLibraryAsXml, onExportApplicationAsXml, onExportWholeAsQml, onExportWholeAsArinc661Part2, onExportWholeAsXml, onExportFonts, onExportSelectedLayersAsPNG, onExportSelectedLayersAsSVG, onExportSelectedLayersWithUserPredefinedExportOptions */
+/*! exports provided: onShowAboutDialog, onOpenFileAndExportWholeAsXml, onExportLibraryAsXml, onExportApplicationAsXml, onExportWholeAsXml, onExportFonts, onExportSelectedLayersAsPNG, onExportSelectedLayersAsSVG, onExportSelectedLayersWithUserPredefinedExportOptions */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
 __webpack_require__.r(__webpack_exports__);
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "showGetCircleDialog", function() { return showGetCircleDialog; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "onShowAboutDialog", function() { return onShowAboutDialog; });
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "onOpenFileAndExportWholeAsXml", function() { return onOpenFileAndExportWholeAsXml; });
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "onExportLibraryAsXml", function() { return onExportLibraryAsXml; });
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "onExportApplicationAsXml", function() { return onExportApplicationAsXml; });
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "onExportWholeAsQml", function() { return onExportWholeAsQml; });
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "onExportWholeAsArinc661Part2", function() { return onExportWholeAsArinc661Part2; });
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "onExportWholeAsXml", function() { return onExportWholeAsXml; });
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "onExportFonts", function() { return onExportFonts; });
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "onExportSelectedLayersAsPNG", function() { return onExportSelectedLayersAsPNG; });
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "onExportSelectedLayersAsSVG", function() { return onExportSelectedLayersAsSVG; });
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "onExportSelectedLayersWithUserPredefinedExportOptions", function() { return onExportSelectedLayersWithUserPredefinedExportOptions; });
-var circleURL = "https://ingescape.com/circle/";
-var circleAppPath = "/Applications/Ingescape/Ingescape-Circle.app";
-var gslExe = circleAppPath + "/Contents/agents/gsl/gsl";
-var gslNotAvailableErrorMessage = "Ingescape Circle is not installed in /Applications";
-var gslScriptDir = "~/Documents/Ingescape/scripts/utils/";
-var libraryQmlScript = "sketch2QmlLibrary.gsl";
-var appQmlScript = "sketch2QmlApp.gsl";
-var libraryArinc661Script = "sketch2Arinc661Library.gsl";
-var appArinc661Script = "sketch2Arinc661App.gsl";
-function showGetCircleDialog(context) {
+function onShowAboutDialog(context) {
   var iconPath = context.plugin.urlForResourceNamed('icon.png').path();
   var icon = NSImage.alloc().initByReferencingFile(iconPath);
   var dialog = NSAlert.alloc().init();
-  dialog.setMessageText("Ingescape Circle not found");
-  dialog.setInformativeText("Sketch2QML requires Ingescape Circle to export " + (targetIsArinc661Part2 ? "ARINC 661 Part2 files" : "QML files") + "\n\nYou must install Ingescape Circle first");
+  dialog.setMessageText("Ingescape plugin");
+  dialog.setInformativeText("This plugin exports a Sketch file to an Ingescape Pivot format for code generation in Qt/QML, etc. to be used in Ingescape Circle");
   dialog.icon = icon;
   dialog.addButtonWithTitle("Get Circle");
   dialog.addButtonWithTitle("Cancel");
   var responseCode = dialog.runModal();
   if (responseCode == NSAlertFirstButtonReturn) {
-    NSWorkspace.sharedWorkspace().openURL(NSURL.URLWithString(circleURL));
+    NSWorkspace.sharedWorkspace().openURL(NSURL.URLWithString("https://ingescape.com/circle/"));
   }
 }
 function onOpenFileAndExportWholeAsXml(context) {
@@ -150,7 +139,7 @@ function onOpenFileAndExportWholeAsXml(context) {
       if (err) {
         console.warn("Can't open file ", filePath, true);
       } else {
-        exportWhole(context, false, false, fileDir, false);
+        exportWhole(context, fileDir, false);
         var _document = __webpack_require__(/*! sketch/dom */ "sketch/dom").getSelectedDocument();
         _document.close();
       }
@@ -193,7 +182,7 @@ function onExportLibraryAsXml(context) {
   var libraryImagesSubDir = "resources/" + libraryName + "_library/images/";
   Utils.createDirectoryIfNeeded(path + libraryFontsSubDir);
   Utils.forceNewDirectory(path + libraryImagesSubDir);
-  UI.message("⚙️ Exporting library as XML. Please wait...");
+  UI.message("⚙️ Exporting library as Ingescape Pivot format. Please wait...");
   var documentContext = Tree.initDocumentContext();
 
   //init lib
@@ -275,7 +264,7 @@ function onExportApplicationAsXml(context) {
   var appImagesSubDir = "resources/" + appName + "_app/images/";
   Utils.createDirectoryIfNeeded(path + appFontsSubDir);
   Utils.forceNewDirectory(path + appImagesSubDir);
-  UI.message("⚙️ Exporting application as XML. Please wait...");
+  UI.message("⚙️ Exporting application as Ingescape Pivot format. Please wait...");
   var documentContext = Tree.initDocumentContext();
 
   //init app
@@ -334,9 +323,9 @@ function onExportApplicationAsXml(context) {
   Utils.showInFinder(xmlFilePath);
 }
 ;
-function exportWhole(context, runGslCommands, targetIsArinc661Part2) {
-  var exportDir = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : "";
-  var interactionsAllowed = arguments.length > 4 && arguments[4] !== undefined ? arguments[4] : true;
+function exportWhole(context) {
+  var exportDir = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : "";
+  var interactionsAllowed = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : true;
   var Tree = __webpack_require__(/*! ./tree.js */ "./src/tree.js");
   var Xml = __webpack_require__(/*! ./xml.js */ "./src/xml.js");
   var Utils = __webpack_require__(/*! ./utils.js */ "./src/utils.js");
@@ -344,14 +333,6 @@ function exportWhole(context, runGslCommands, targetIsArinc661Part2) {
   var document = sketch.getSelectedDocument();
   var settings = __webpack_require__(/*! sketch/settings */ "sketch/settings");
   var UI = __webpack_require__(/*! sketch/ui */ "sketch/ui");
-  if (!document.path) {
-    UI.alert("Sketch2QML: can not export " + (runGslCommands ? targetIsArinc661Part2 ? "ARINC 661 Part2 files" : "QML files" : "XML files"), "You must save your Sketch file first");
-    return;
-  }
-  if (runGslCommands && interactionsAllowed && !Utils.fileExists(gslExe)) {
-    showGetCircleDialog(context, targetIsArinc661Part2);
-    return;
-  }
   var path = interactionsAllowed && exportDir === "" ? Utils.chooseFolder() : exportDir;
   if (!path) {
     log("exportWhole: action cancelled by user");
@@ -375,8 +356,8 @@ function exportWhole(context, runGslCommands, targetIsArinc661Part2) {
   Utils.forceNewDirectory(path + appImagesSubDir);
   Utils.createDirectoryIfNeeded(path + libraryFontsSubDir);
   Utils.forceNewDirectory(path + libraryImagesSubDir);
-  var maxNumberOfSteps = runGslCommands ? 4 : 2;
-  UI.message("⚙️ [1/" + maxNumberOfSteps + "] Exporting library as XML. Please wait...");
+  var maxNumberOfSteps = 2;
+  UI.message("⚙️ [1/" + maxNumberOfSteps + "] Exporting library as Ingescape Pivot format. Please wait...");
   var documentContext = Tree.initDocumentContext();
 
   //export library
@@ -417,7 +398,7 @@ function exportWhole(context, runGslCommands, targetIsArinc661Part2) {
   Xml.exportXMLToPath(path + libraryName + "_library.xml", xmlLibraryRoot);
 
   //export app
-  UI.message("⚙️ [2/" + maxNumberOfSteps + "] Exporting application as XML. Please wait...");
+  UI.message("⚙️ [2/" + maxNumberOfSteps + "] Exporting application as Ingescape Pivot format. Please wait...");
   var xmlAppRoot = NSXMLElement.alloc().initWithName("app");
   Xml.xmlAddAttributesToElement(xmlAppRoot, ["name", appName, "sketchVersion", settings.version.sketch]);
   for (var _i = 0; _i < document.pages.length; _i++) {
@@ -465,37 +446,15 @@ function exportWhole(context, runGslCommands, targetIsArinc661Part2) {
   Tree.addColorVariablesToXml(xmlAppRoot); // NB: it must be done after all exports because styles and items may use not imported swatches
   Tree.clearTempContext();
   Xml.exportXMLToPath(path + appName + "_app.xml", xmlAppRoot);
-  var exportSucceeded = true;
-  if (runGslCommands) {
-    if (Utils.fileExists(gslExe)) {
-      UI.message("⚙️ [3/" + maxNumberOfSteps + "] Generating code from our XML library. Please wait...");
-      var libraryGslScript = gslScriptDir + (targetIsArinc661Part2 ? libraryArinc661Script : libraryQmlScript);
-      Utils.runCommand(gslExe, ["-script:" + Utils.expandTildeInPath(libraryGslScript), path + libraryName + "_library.xml"], path);
-      UI.message("⚙️ [4/" + maxNumberOfSteps + "] Generating code from ou XML application. Please wait...");
-      var appGslScript = gslScriptDir + (targetIsArinc661Part2 ? appArinc661Script : appQmlScript);
-      Utils.runCommand(gslExe, ["-script:" + Utils.expandTildeInPath(appGslScript), path + appName + "_app.xml"], path);
-    } else {
-      exportSucceeded = false;
-      UI.alert("Sketch2QML: can not generate code from XML", gslNotAvailableErrorMessage);
-    }
-  }
   if (interactionsAllowed) {
     Utils.playSoundNamed(Utils.Sounds.Glass);
-    UI.message((exportSucceeded ? "✅" : "❌") + " Export of app and lib completed to " + path);
+    UI.message("✅ Export of app and lib completed to " + path);
     Utils.showInFinder(path);
   }
 }
 ;
-function onExportWholeAsQml(context) {
-  exportWhole(context, true, false);
-}
-;
-function onExportWholeAsArinc661Part2(context) {
-  exportWhole(context, true, true);
-}
-;
 function onExportWholeAsXml(context) {
-  exportWhole(context, false, false);
+  exportWhole(context);
 }
 ;
 
@@ -2378,11 +2337,10 @@ module.exports = require("sketch/ui");
 }
 globalThis['onOpenFileAndExportWholeAsXml'] = __skpm_run.bind(this, 'onOpenFileAndExportWholeAsXml');
 globalThis['onRun'] = __skpm_run.bind(this, 'default');
-globalThis['onExportWholeAsQml'] = __skpm_run.bind(this, 'onExportWholeAsQml');
-globalThis['onExportWholeAsArinc661Part2'] = __skpm_run.bind(this, 'onExportWholeAsArinc661Part2');
 globalThis['onExportWholeAsXml'] = __skpm_run.bind(this, 'onExportWholeAsXml');
 globalThis['onExportLibraryAsXml'] = __skpm_run.bind(this, 'onExportLibraryAsXml');
 globalThis['onExportApplicationAsXml'] = __skpm_run.bind(this, 'onExportApplicationAsXml');
+globalThis['onShowAboutDialog'] = __skpm_run.bind(this, 'onShowAboutDialog');
 globalThis['onExportSelectedLayersAsPNG'] = __skpm_run.bind(this, 'onExportSelectedLayersAsPNG');
 globalThis['onExportSelectedLayersAsSVG'] = __skpm_run.bind(this, 'onExportSelectedLayersAsSVG');
 globalThis['onExportSelectedLayersWithUserPredefinedExportOptions'] = __skpm_run.bind(this, 'onExportSelectedLayersWithUserPredefinedExportOptions');
