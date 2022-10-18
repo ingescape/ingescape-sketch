@@ -3,7 +3,6 @@
   "icon": "icon.png",
   "name" : "ingescape",
   "identifier" : "com.ingescape.sketch_to_ingescape",
-  "version" : "1.0.5",
   "description" : "Exports a Sketch file to an Ingescape Pivot format for code generation in Qt/QML, etc. to be used in Ingescape Circle",
   "authorEmail" : "contact@ingescape.com",
   "author" : "Ingenuity i/o",
