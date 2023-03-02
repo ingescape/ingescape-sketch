@@ -120,7 +120,7 @@ export function onExportLibraryAsXml(context) {
                                         "width", currentSymbol.frame.width, "height", currentSymbol.frame.height,
                                         "hasBackground", (currentSymbol.background.enabled && currentSymbol.background.includedInInstance),
                                         "backgroundColor", Tree.getBackgroundColorAsHexValueOrSwatchReference(currentSymbol)],
-                                         null);
+                                        null);
 
         if (parentType)
             Xml.xmlAddAttributesToElement(xmlComponent, ["parentType", parentType]);
@@ -128,6 +128,7 @@ export function onExportLibraryAsXml(context) {
         if (keyValues.length > 0)
             Xml.xmlAddCustomPropertiesToElement(xmlComponent, keyValues);
 
+        Tree.addSymbolMasterOverridesToXml(currentSymbol, xmlComponent, documentContext);
         Tree.treeIterateLayers(currentSymbol.layers, xmlComponent, false, path, libraryImagesSubDir, xmlLibraryRoot, documentContext, null);
     }
 
@@ -353,6 +354,7 @@ function exportWhole(context, exportDir = "", interactionsAllowed = true) {
         if (keyValues.length > 0)
             Xml.xmlAddCustomPropertiesToElement(xmlComponent, keyValues);
 
+        Tree.addSymbolMasterOverridesToXml(currentSymbol, xmlComponent, documentContext);
         Tree.treeIterateLayers(currentSymbol.layers, xmlComponent, false, path, libraryImagesSubDir, xmlLibraryRoot, documentContext, null);
     }
 

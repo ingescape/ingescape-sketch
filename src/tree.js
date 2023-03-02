@@ -158,6 +158,24 @@ function getFontFilesUsedByLayer(layer, result) {
 }
 
 
+function addSymbolMasterOverridesToXml(symbolMaster, xmlRoot, documentContext){
+    if (symbolMaster.overrides){
+        let Xml = require("./xml.js");
+        symbolMaster.overrides.forEach(overR => {
+            // NB: Since october 2022, Sketch allows to override font properties (weight, alignment, etc.) and colors
+            //     within Symbol instances without creating a text style or layer style for each variation
+            if (overR.editable
+                && ((overR.property == "image") || (overR.property == "textStyle") || (overR.property == "stringValue") 
+                    || (overR.property == "layerStyle") || (overR.property == "symbolID"))
+                ) {
+                let overrideTargetPath = treeBuildOverrideTargetPath(overR, documentContext.globalNamesIndex)
+                Xml.xmlAddElement(xmlRoot, "overridable", ["property", overR.property, "on", overrideTargetPath], null);
+            }
+        });
+    }
+}
+
+
 function treeIterateLayers(layers, parent, shallIgnoreSymbolMasters, rootDirPath, imagesSubDir, xmlRoot,
                             documentContext, mask){
     let Xml = require("./xml.js");
@@ -247,7 +265,7 @@ function treeIterateLayers(layers, parent, shallIgnoreSymbolMasters, rootDirPath
                     for (let j = 0; j < nb; j++){
                         let overR = l.overrides[j];
 
-                        if (!overR.isDefault){
+                        if (overR.editable && !overR.isDefault){
                             let indexedDataOverride = documentContext.globalNamesIndex[overR.affectedLayer.id];
                             let originalOverrideTargetPath = treeBuildOverrideTargetPath(overR, documentContext.globalNamesIndex);
                             let overrideTargetPath = originalOverrideTargetPath;
@@ -890,6 +908,8 @@ function treeAddAttributesFromLayerData(name, currentXMLElement, type, layer, ro
         if (style) {
             if (type == "MSTextLayer") {
                 if (layer.sharedStyle) {
+                    attributes.push("useSharedStyle");
+                    attributes.push(1);
                     attributes.push("sharedStyleId");
                     attributes.push(layer.sharedStyleId);
     
@@ -907,6 +927,10 @@ function treeAddAttributesFromLayerData(name, currentXMLElement, type, layer, ro
                 }
             }
             else {
+                if (layer.sharedStyle) {
+                    attributes.push("useSharedStyle");
+                    attributes.push(1);
+                } 
                 treeAddAttributesFromLayerStyle(currentXMLElement, type, style);
             }
         }
@@ -1294,10 +1318,8 @@ function treeBuildOverrideTargetPath(overR, globalNamesIndex){
             log("undefined index on overriden layer " + overR.affectedLayer.name + " that may also be exportable")
         }
     }
-    //log("PATH: " + result);
     return result;
 }
-
 
 
 function addFontFilesToXml(xmlParent, rootDirPath, fontsSubDir, fontFiles, excludeSystemFonts) {
@@ -1803,5 +1825,6 @@ module.exports = {
     getUniqueNameFromIndexedData,
     initDocumentContext,
     pascalize,
-    treeIterateLayers
+    treeIterateLayers,
+    addSymbolMasterOverridesToXml
 };
