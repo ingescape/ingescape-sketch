@@ -164,6 +164,7 @@ function addSymbolMasterOverridesToXml(symbolMaster, xmlRoot, documentContext){
         symbolMaster.overrides.forEach(overR => {
             // NB: Since october 2022, Sketch allows to override font properties (weight, alignment, etc.) and colors
             //     within Symbol instances without creating a text style or layer style for each variation
+            //     This plugin only supports the old overridable properties
             if (overR.editable
                 && ((overR.property == "image") || (overR.property == "textStyle") || (overR.property == "stringValue") 
                     || (overR.property == "layerStyle") || (overR.property == "symbolID"))
@@ -259,13 +260,19 @@ function treeIterateLayers(layers, parent, shallIgnoreSymbolMasters, rootDirPath
                 
                 //Symbol instances require specific management around overrides
                 //Overrides are stored "as-is" to be applied as property values during code generation.
-                if (l.overrides){
+                if (l.overrides) {
                     let nb = l.overrides.length;
                     let symbolOverridesHash = {};
-                    for (let j = 0; j < nb; j++){
+                    for (let j = 0; j < nb; j++) {
                         let overR = l.overrides[j];
+                        let isEditable = overR.editable;
+                        let isDefault = overR.isDefault;
 
-                        if (overR.editable && !overR.isDefault){
+                        // NB: Since october 2022, Sketch allows to override font properties (weight, alignment, etc.) and colors
+                        //     within Symbol instances without creating a text style or layer style for each variation
+                        //     This plugin only supports the old overridable properties
+                        if ((overR.property == "image") || (overR.property == "textStyle") || (overR.property == "stringValue") 
+                            || (overR.property == "layerStyle") || (overR.property == "symbolID")) {
                             let indexedDataOverride = documentContext.globalNamesIndex[overR.affectedLayer.id];
                             let originalOverrideTargetPath = treeBuildOverrideTargetPath(overR, documentContext.globalNamesIndex);
                             let overrideTargetPath = originalOverrideTargetPath;
@@ -275,18 +282,14 @@ function treeIterateLayers(layers, parent, shallIgnoreSymbolMasters, rootDirPath
                             }
                             //log("handling override for " + overR.affectedLayer.id + " - " + overR.affectedLayer.name + " - " +  + " (" + indexedDataOverride + ")");
 
-
-                            //handle false positive i.e. overrides that use the default value even if isDefault returns false
+                            // isDefault flag: handle false positive i.e. overrides that use the default value even if isDefault returns false
                             // => it happens when:
                             //  - a symbol overrides a text and this symbol is instantiated in other symbols
                             //  - a graphic designer changes the style of an instance and then reselect the default style
-                            if (overR.sketchObject && (!overR.sketchObject.overrideValue() || (overR.sketchObject.defaultValue() == overR.sketchObject.currentValue())))
-                            {
-                                //log("Skipping false override: layer=" + l.name + " path=" + originalOverrideTargetPath + " value=" + overR.value);
-                                continue;
+                            if (overR.sketchObject && (!overR.sketchObject.overrideValue() || (overR.sketchObject.defaultValue() == overR.sketchObject.currentValue()))) {
+                                isDefault = true;
                             }
 
-                            
                             //handle possible nesting of overrides
                             let overrideParent = xmlCurrent; //set default parent for override data (may change with symbol overrides)
 
@@ -308,12 +311,12 @@ function treeIterateLayers(layers, parent, shallIgnoreSymbolMasters, rootDirPath
                             if (overR.property == "image") {
                                 //we generate image file from data
                                 let imgData = overR.value.nsdata;
-                                let imgName = NSString.stringWithFormat("%@.png", overR.id);
+                                let imgName = NSString.stringWithFormat("%@.png", overR.id.replace(/\//g, "_"));
                                 let imgRelativePath = NSString.stringWithFormat("%@%@", imagesSubDir, imgName);
                                 imgData.writeToFile_atomically(NSString.stringWithFormat("%@/%@", rootDirPath, imgRelativePath), false);
-                                Xml.xmlAddElement(overrideParent, "override", ["property", overR.property, "value", imgRelativePath, "on", overrideTargetPath], null);
+                                Xml.xmlAddElement(overrideParent, "override", ["property", overR.property, "value", imgRelativePath, "on", overrideTargetPath, "editable", isEditable, "isDefault", isDefault], null);
                             } else if (overR.property == "textStyle") {
-                                let currentOver =Xml.xmlAddElement(overrideParent, "override", ["property", overR.property, "value", overR.value, "on", overrideTargetPath], null);
+                                let currentOver =Xml.xmlAddElement(overrideParent, "override", ["property", overR.property, "value", overR.value, "on", overrideTargetPath, "editable", isEditable, "isDefault", isDefault], null);
                                 if (documentContext.sharedTextStylesIndex[overR.value]) {
                                     let affectedLayerUsesAnOutOfSyncStyle = documentContext.textsWithOutOfSyncStyle.hasOwnProperty(overR.affectedLayer.id);
                                     let overrideStyle = documentContext.sharedTextStylesIndex[overR.value].style;
@@ -332,7 +335,7 @@ function treeIterateLayers(layers, parent, shallIgnoreSymbolMasters, rootDirPath
                                     continue;
                                 }
                             } else if (overR.property == "layerStyle") {
-                                let currentOver =Xml.xmlAddElement(overrideParent, "override", ["property", overR.property, "value", overR.value, "on", overrideTargetPath], null);
+                                let currentOver =Xml.xmlAddElement(overrideParent, "override", ["property", overR.property, "value", overR.value, "on", overrideTargetPath, "editable", isEditable, "isDefault", isDefault], null);
                                 if (documentContext.sharedLayerStylesIndex[overR.value]) {
                                     let styleXML =Xml.xmlAddElement(currentOver, "layerStyle", null, null);
                                     treeAddAttributesFromLayerStyle(styleXML, type, documentContext.sharedLayerStylesIndex[overR.value].style);
@@ -343,7 +346,7 @@ function treeIterateLayers(layers, parent, shallIgnoreSymbolMasters, rootDirPath
                                     continue;
                                 }
                             } else if (overR.property == "stringValue") {
-                               Xml.xmlAddElement(overrideParent, "override", ["property", overR.property, "value", overR.value, "on", overrideTargetPath], null);
+                               Xml.xmlAddElement(overrideParent, "override", ["property", overR.property, "value", overR.value, "on", overrideTargetPath, "editable", isEditable, "isDefault", isDefault], null);
                             } else if (overR.property == "symbolID") {
                                 let indexexDataOldSymbol = documentContext.globalNamesIndex[overR.affectedLayer.master.id];
                                 if (!indexexDataOldSymbol){
@@ -374,7 +377,9 @@ function treeIterateLayers(layers, parent, shallIgnoreSymbolMasters, rootDirPath
                                     }
                                 }
 
-                                symbolOverridesHash[originalOverrideTargetPath] =Xml.xmlAddElement(overrideParent, "override", ["property", overR.property, "newType", newType, "oldType", oldType, "on", overrideTargetPath], null);
+                                let xmlSymbolOverride = Xml.xmlAddElement(overrideParent, "override", ["property", overR.property, "newType", newType, "oldType", oldType, "on", overrideTargetPath, "editable", isEditable, "isDefault", isDefault], null);
+                                if (!isDefault)
+                                    symbolOverridesHash[originalOverrideTargetPath] = xmlSymbolOverride;
                             }
                         }
                     }
