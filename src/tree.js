@@ -66,6 +66,10 @@ let GLOBALNAMESINDEX_PARENTTYPE = 4;
 let TEMP_CONTEXT = {};
 
 
+let POINT_DECIMAL_PRECISION = 5; // Number of decimals to export abscissa and ordinate of points
+let ANGLE_DECIMAL_PRECISION = 3; 
+
+
 function getUniqueNameFromIndexedData(data) {
     return data[GLOBALNAMESINDEX_UNIQUENAME];
 }
@@ -261,8 +265,10 @@ function treeIterateLayers(layers, parent, shallIgnoreSymbolMasters, rootDirPath
                 //Symbol instances require specific management around overrides
                 //Overrides are stored "as-is" to be applied as property values during code generation.
                 if (l.overrides) {
+                    const sketchVersion = require('sketch/dom').version.sketch;
                     let nb = l.overrides.length;
                     let symbolOverridesHash = {};
+
                     for (let j = 0; j < nb; j++) {
                         let overR = l.overrides[j];
                         let isEditable = overR.editable;
@@ -282,12 +288,15 @@ function treeIterateLayers(layers, parent, shallIgnoreSymbolMasters, rootDirPath
                             }
                             //log("handling override for " + overR.affectedLayer.id + " - " + overR.affectedLayer.name + " - " +  + " (" + indexedDataOverride + ")");
 
-                            // isDefault flag: handle false positive i.e. overrides that use the default value even if isDefault returns false
-                            // => it happens when:
-                            //  - a symbol overrides a text and this symbol is instantiated in other symbols
-                            //  - a graphic designer changes the style of an instance and then reselect the default style
-                            if (overR.sketchObject && (!overR.sketchObject.overrideValue() || (overR.sketchObject.defaultValue() == overR.sketchObject.currentValue()))) {
-                                isDefault = true;
+                            // NB: Sketch 96 uses a new API: MSOverridePoint instead of MSAvailableOverride
+                            if (sketchVersion < 96) {
+                                // isDefault flag: handle false positive i.e. overrides that use the default value even if isDefault returns false
+                                // => it happens when:
+                                //  - a symbol overrides a text and this symbol is instantiated in other symbols
+                                //  - a graphic designer changes the style of an instance and then reselect the default style
+                                if (overR.sketchObject && (!overR.sketchObject.overrideValue() || (overR.sketchObject.defaultValue() == overR.sketchObject.currentValue()))) {
+                                    isDefault = true;
+                                }
                             }
 
                             //handle possible nesting of overrides
@@ -428,15 +437,17 @@ function treeIterateLayers(layers, parent, shallIgnoreSymbolMasters, rootDirPath
 function treeAddAttributesFromPointData(currentXMLElement, point){
     if (point && point.sketchObject) {
         let Xml = require("./xml.js");
+        let Utils = require("./utils.js");
+        
         let pointType = point.pointType;
 
         let pointAttributes = [];
         pointAttributes.push("pointType");
         pointAttributes.push(point.pointType);
         pointAttributes.push("x");
-        pointAttributes.push(point.point.x);
+        pointAttributes.push(Utils.roundWithDecimalPrecision(point.point.x, POINT_DECIMAL_PRECISION));
         pointAttributes.push("y");
-        pointAttributes.push(point.point.y);
+        pointAttributes.push(Utils.roundWithDecimalPrecision(point.point.y, POINT_DECIMAL_PRECISION));
 
         if (pointType == 'Straight') {
             pointAttributes.push("cornerRadius");
@@ -448,16 +459,16 @@ function treeAddAttributesFromPointData(currentXMLElement, point){
 
             if (nativePoint.hasCurveFrom()) {
                 pointAttributes.push("curveFromX");
-                pointAttributes.push(point.curveFrom.x);
+                pointAttributes.push(Utils.roundWithDecimalPrecision(point.curveFrom.x, POINT_DECIMAL_PRECISION));
                 pointAttributes.push("curveFromY");
-                pointAttributes.push(point.curveFrom.y);
+                pointAttributes.push(Utils.roundWithDecimalPrecision(point.curveFrom.y, POINT_DECIMAL_PRECISION));
             }
 
             if (nativePoint.hasCurveTo()) {
                 pointAttributes.push("curveToX");
-                pointAttributes.push(point.curveTo.x);
+                pointAttributes.push(Utils.roundWithDecimalPrecision(point.curveTo.x, POINT_DECIMAL_PRECISION));
                 pointAttributes.push("curveToY");
-                pointAttributes.push(point.curveTo.y);
+                pointAttributes.push(Utils.roundWithDecimalPrecision(point.curveTo.y, POINT_DECIMAL_PRECISION));
             }
             
             pointAttributes.push("cornerRadius");
@@ -465,13 +476,13 @@ function treeAddAttributesFromPointData(currentXMLElement, point){
 
         } else if (pointType != 'Undefined') {
             pointAttributes.push("curveFromX");
-            pointAttributes.push(point.curveFrom.x);
+            pointAttributes.push(Utils.roundWithDecimalPrecision(point.curveFrom.x, POINT_DECIMAL_PRECISION));
             pointAttributes.push("curveFromY");
-            pointAttributes.push(point.curveFrom.y);
+            pointAttributes.push(Utils.roundWithDecimalPrecision(point.curveFrom.y, POINT_DECIMAL_PRECISION));
             pointAttributes.push("curveToX");
-            pointAttributes.push(point.curveTo.x);
+            pointAttributes.push(Utils.roundWithDecimalPrecision(point.curveTo.x, POINT_DECIMAL_PRECISION));
             pointAttributes.push("curveToY");
-            pointAttributes.push(point.curveTo.y);
+            pointAttributes.push(Utils.roundWithDecimalPrecision(point.curveTo.y, POINT_DECIMAL_PRECISION));
         }
 
        Xml.xmlAddElement(currentXMLElement, "point", pointAttributes, null);
@@ -797,9 +808,18 @@ function treeAddAttributesFromLayerData(name, currentXMLElement, type, layer, ro
         attributes.push("1");
     }
     if (layer.transform){
-        if (layer.transform.rotation !== 0) {
+        //NB: layer.transform.rotation wraps layer.sketchObject.userVisibleRotation() 
+        //     that matches what users see in the inspector which may be different 
+        //     from the raw `rotation` value
+        //     Here, we need the raw rotation because the generated code will apply a rotation
+        //
+        //NB: layer.sketchObject.userVisibleRotation and layer.sketchObject.rotation don't use the same rotation direction
+        //    layer.sketchObject.userVisibleRotation  is clockwise, layer.sketchObject.rotation is counterclockwise
+        let rotation = Utils.roundWithDecimalPrecision(-layer.sketchObject.rotation(), ANGLE_DECIMAL_PRECISION);
+
+        if (rotation !== 0) {
             attributes.push("rotation");
-            attributes.push(layer.transform.rotation);
+            attributes.push(rotation);
         }
         if (layer.transform.flippedHorizontally){
             attributes.push("flippedHorizontally");
@@ -1732,11 +1752,7 @@ function isOvalShape(layer) {
 
 
 function isLine(layer) {
-    return (
-            layer && layer.sketchObject 
-            && layer.sketchObject.isKindOfClass(MSShapePathLayer.class())
-            && (layer.shapeType == "Custom") && (layer.points.length == 2)
-            );
+    return (layer && layer.sketchObject && layer.sketchObject.isLine());
 };
 
 

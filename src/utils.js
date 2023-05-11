@@ -126,9 +126,8 @@ Utils.createDirectoryIfNeeded = function(path) {
 
 Utils.forceNewDirectory = function(path) {
     const manager = NSFileManager.defaultManager();
-    if (manager.fileExistsAtPath(path)) {
+    if (manager.fileExistsAtPath(path))
         manager.removeItemAtPath_error(path, nil);
-    }
         
     if (manager.createDirectoryAtPath_withIntermediateDirectories_attributes_error(path, true, nil, nil)) {
         return true;
@@ -141,7 +140,7 @@ Utils.forceNewDirectory = function(path) {
 
 Utils.roundWithDecimalPrecision = function (value, precision){
     let multiplier = Math.pow(10, precision || 0);
-    return Math.round(value * multiplier)/multiplier;
+    return Math.round((value + Number.EPSILON) * multiplier)/multiplier;
 };
 
 
@@ -152,13 +151,23 @@ Utils.roundBy = function(value, rounder) {
 
 
 Utils.isLine = function(layer) {
-    return (
-            layer && layer.sketchObject 
-            && layer.sketchObject.isKindOfClass(MSShapePathLayer.class())
-            && (layer.shapeType == "Custom") && (layer.points.length == 2)
-            );
+    return (layer && layer.sketchObject && layer.sketchObject.isLine());
 };
 
+
+Utils.MSLayerAbsoluteInfluenceRect = function(nativeLayer) {
+    const sketchVersion = require('sketch/dom').version.sketch;
+    
+    if (sketchVersion >= 96) {
+        //NB: method absoluteInfluenceRect() of MSLayer removed in Sketch 96
+        const document = nativeLayer.documentData();
+        const immutable = nativeLayer.immutableModelObject();
+        const relativeInfluenceRect = immutable.influenceRectForBoundsInDocument(document);
+        return nativeLayer.convertRect_toLayer_(relativeInfluenceRect, null);
+    } else {
+        return nativeLayer.absoluteInfluenceRect();
+    }
+};
 
 
 Utils.exportLayerWithFormats = function(layer, exportPath, exportName, formats, preserveFrameSize, applyTransformAndOpacity) {
@@ -185,16 +194,26 @@ Utils.exportLayerWithFormats = function(layer, exportPath, exportName, formats, 
         if (!exportPath.endsWith("/"))
             exportPath += "/";
 
-        // Duplicate our layer if needed
-        let useDuplicate = false;
-        let isRotated = (layer.transform.rotation != 0);
+        //NB: layer.transform.rotation wraps layer.sketchObject.userVisibleRotation() 
+        //     that matches what users see in the inspector which may be different 
+        //     from the raw `rotation` value
+        //     Here, we need the raw rotation because the generated code will apply a rotation
+        //
+        //NB: layer.sketchObject.userVisibleRotation and layer.sketchObject.rotation don't use the same rotation direction
+        //    layer.sketchObject.userVisibleRotation  is clockwise, layer.sketchObject.rotation is counterclockwise
+        let rotation = Utils.roundWithDecimalPrecision(-layer.sketchObject.rotation(), 3);
+
+        let isRotated = (rotation != 0);
         let isFlippedHorizontally = layer.transform.flippedHorizontally;
         let isFlippedVertically = layer.transform.flippedVertically;
         let parentIsGroup = (layer.parent && layer.parent.sketchObject && layer.parent.sketchObject.isKindOfClass(MSLayerGroup.class()));
+
+        // Duplicate our layer if needed
+        let useDuplicate = false;
         if (
             !applyTransformAndOpacity 
             && 
-            ((layer.style.opacity != 1) || isRotated || isFlippedHorizontally || layer.transform.flippedVertically || parentIsGroup)
+            ((layer.style.opacity != 1) || isRotated || isFlippedHorizontally || isFlippedVertically || parentIsGroup)
             )
         {
             useDuplicate = true;
@@ -231,7 +250,7 @@ Utils.exportLayerWithFormats = function(layer, exportPath, exportName, formats, 
 
         let nativeLayer = layerToExport.sketchObject;
         let absoluteRect = nativeLayer.absoluteRect().rect();
-        let absoluteInfluenceRect = nativeLayer.absoluteInfluenceRect();
+        let absoluteInfluenceRect = Utils.MSLayerAbsoluteInfluenceRect(nativeLayer);
 
         let exportRect = absoluteRect;
         if (!preserveFrameSize && !CGRectContainsRect(absoluteRect, absoluteInfluenceRect))
@@ -279,14 +298,10 @@ Utils.exportLayerWithFormats = function(layer, exportPath, exportName, formats, 
         }
 
         if (useDuplicate)
-        {
             layerToExport.remove();
-        }
     }
     else
-    {
         console.warn("Utils.exportLayerWithFormats: no export format to export layer " + layer.name);
-    }
 
     return [topInset, bottomInset, leftInset, rightInset];
 }
