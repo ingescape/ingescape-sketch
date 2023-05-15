@@ -1,7 +1,7 @@
 {
   "name": "ingescape",
   "description": "Exports a Sketch file to an Ingescape Pivot format for code generation in Qt/QML, etc. to be used in Ingescape Circle",
-  "version": "1.0.13",
+  "version": "1.0.14",
   "engines": {
     "sketch": ">=49.0"
   },
