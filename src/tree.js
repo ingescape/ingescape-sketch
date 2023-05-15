@@ -1780,13 +1780,20 @@ function isSupportedLayer(layer) {
     return (
             isTextLayer(layer) || isBitmapLayer(layer) 
             || (
-                 (isRectangleShape(layer) || isOvalShape(layer) || isLine(layer))
+                 (isRectangleShape(layer) || isOvalShape(layer) || isSupportedLine(layer))
                  && 
                  isSupportedShapeStyle(layer.style)
                 )
             || isLayerGroup(layer) 
             || isArtboard(layer) || isSymbolInstance(layer)
             );
+}
+
+
+function isSupportedLine(layer) {
+    return (isLine(layer) && layer.style && layer.style.borderOptions 
+            && (layer.style.borderOptions.startArrowhead == 'None') 
+            && (layer.style.borderOptions.endArrowhead == 'None'));
 }
 
 
