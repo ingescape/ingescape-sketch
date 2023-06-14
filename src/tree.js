@@ -220,17 +220,17 @@ function treeIterateLayers(layers, parent, shallIgnoreSymbolMasters, rootDirPath
             let rawName = getRawNameFromIndexedData(indexedData);
             let xmlCurrent = Xml.xmlAddElement(actualParent, "include", ["name", rawName], null);
             if (keyValues.length > 0)
-                addCustomPropertiesToXml(xmlCurrent, keyValues);
+                Xml.xmlAddCustomPropertiesToElement(xmlCurrent, keyValues);
 
         } else if (actualType == "includeExternal") {
             let xmlCurrent = Xml.xmlAddElement(actualParent, "external", ["name", actualName], null);
             if (keyValues.length > 0)
-                addCustomPropertiesToXml(xmlCurrent, keyValues);
+                Xml.xmlAddCustomPropertiesToElement(xmlCurrent, keyValues);
             
         } else if ((type == "MSTextLayer") && (actualType == "includeData")) {
             let xmlCurrent = Xml.xmlAddElement(actualParent, "data", ["name", actualName], l.text);
             if (keyValues.length > 0)
-                addCustomPropertiesToXml(xmlCurrent, keyValues);
+                Xml.xmlAddCustomPropertiesToElement(xmlCurrent, keyValues);
                 
         } else {
             //FIXME: using internal Sketch API that might change in future versions
@@ -418,7 +418,7 @@ function treeIterateLayers(layers, parent, shallIgnoreSymbolMasters, rootDirPath
             
             //Add custom keys and values extracted from layer name
             if (keyValues.length > 0)
-                addCustomPropertiesToXml(xmlCurrent, keyValues);
+                Xml.xmlAddCustomPropertiesToElement(xmlCurrent, keyValues);
             
             //add layer data
             //FIXME: compute x/y/width/height changes due to masks and mask chains breaks reparenting
