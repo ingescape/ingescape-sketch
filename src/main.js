@@ -81,7 +81,7 @@ export function onExportLibraryAsXml(context) {
 
     UI.message("⚙️ Exporting library as Ingescape Pivot format. Please wait...");
 
-    let documentContext = Tree.initDocumentContext();
+    let documentContext = Tree.initDocumentContext(libraryImagesSubDir);
 
     //init lib
     let xmlLibraryRoot = NSXMLElement.alloc().initWithName("library");
@@ -182,13 +182,14 @@ export function onExportApplicationAsXml(context) {
     // Init directories
     let appFontsSubDir = "resources/" + appName + "_app/fonts/";
     let appImagesSubDir = "resources/" + appName + "_app/images/";
+    let libraryImagesSubDir = "resources/" + libraryName + "_library/images/";
     Utils.createDirectoryIfNeeded(path + appFontsSubDir);
     Utils.forceNewDirectory(path + appImagesSubDir);
  
 
     UI.message("⚙️ Exporting application as Ingescape Pivot format. Please wait...");
 
-    let documentContext = Tree.initDocumentContext();
+    let documentContext = Tree.initDocumentContext(libraryImagesSubDir);
 
     //init app
     let xmlAppRoot = NSXMLElement.alloc().initWithName("app");
@@ -307,7 +308,7 @@ function exportWhole(context, exportDir = "", interactionsAllowed = true) {
     let maxNumberOfSteps = 2;
     UI.message("⚙️ [1/" + maxNumberOfSteps+ "] Exporting library as Ingescape Pivot format. Please wait...");
 
-    let documentContext = Tree.initDocumentContext();
+    let documentContext = Tree.initDocumentContext(libraryImagesSubDir);
 
     //export library
     let xmlLibraryRoot = NSXMLElement.alloc().initWithName("library");

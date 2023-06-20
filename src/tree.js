@@ -98,15 +98,17 @@ function getParentTypeFromIndexedData(data) {
 function clearTempContext() {
     TEMP_CONTEXT = {
         availableSwatchIDs: [],
-        missingSwatches: {}
+        missingSwatches: {},
+        imageHashToFilePath: {}
     };
 }
 
 
-function initDocumentContext() {
+function initDocumentContext(libraryImagesSubDir) {
     clearTempContext();
 
     let documentContext = {
+        libraryImagesSubDir: libraryImagesSubDir,
         fontFiles: [],
         sharedLayerStylesIndex: {},
         sharedTextStylesIndex: {},
@@ -318,11 +320,20 @@ function treeIterateLayers(layers, parent, shallIgnoreSymbolMasters, rootDirPath
                             }
                             
                             if (overR.property == "image") {
-                                //we generate image file from data
-                                let imgData = overR.value.nsdata;
-                                let imgName = NSString.stringWithFormat("%@.png", overR.id.replace(/\//g, "_"));
-                                let imgRelativePath = NSString.stringWithFormat("%@%@", imagesSubDir, imgName);
-                                imgData.writeToFile_atomically(NSString.stringWithFormat("%@/%@", rootDirPath, imgRelativePath), false);
+                                let imgHash = overR.value.sketchObject.hash();
+                                let imgRelativePath = "";
+                                if (TEMP_CONTEXT.imageHashToFilePath.hasOwnProperty(imgHash)) {
+                                    imgRelativePath = TEMP_CONTEXT.imageHashToFilePath[imgHash];
+                                } else if (!isDefault) {
+                                    let imgUid = overR.affectedLayer.id + "__" + imgHash;
+                                    imgRelativePath = imagesSubDir + imgUid + ".png";
+                                    let imgData = overR.value.nsdata;
+                                    imgData.writeToFile_atomically(NSString.stringWithFormat("%@/%@", rootDirPath, imgRelativePath), false);
+                                    TEMP_CONTEXT.imageHashToFilePath[imgHash] = imgRelativePath;
+                                } else {
+                                    let targetName = getUniqueNameFromIndexedData(indexedDataOverride);
+                                    imgRelativePath = documentContext.libraryImagesSubDir + camelize(targetName) + "__" + overR.affectedLayer.id;
+                                }
                                 Xml.xmlAddElement(overrideParent, "override", ["property", overR.property, "value", imgRelativePath, "on", overrideTargetPath, "editable", isEditable, "isDefault", isDefault], null);
                             } else if (overR.property == "textStyle") {
                                 let currentOver =Xml.xmlAddElement(overrideParent, "override", ["property", overR.property, "value", overR.value, "on", overrideTargetPath, "editable", isEditable, "isDefault", isDefault], null);
@@ -897,9 +908,7 @@ function treeAddAttributesFromLayerData(name, currentXMLElement, type, layer, ro
     
     //handle images with no export by manually generating image
     if ((type == "MSBitmapLayer") && layer.exportFormats && (layer.exportFormats.length == 0)){
-        //we have an unsupported type => render it as an image
-        treeForceImageExport(layer, currentXMLElement, rootDirPath, imagesSubDir, name, type);
-        //log("force export on image " + layer.name);
+        treeExportBitmapLayer(layer, currentXMLElement, rootDirPath, imagesSubDir, name, type);
         renderingAsImage = true;
     }
 
@@ -998,6 +1007,58 @@ function treeAddAttributesFromLayerData(name, currentXMLElement, type, layer, ro
 }
 
 
+function treeExportBitmapLayer(layer, currentXMLElement, rootDirPath, imagesSubDir, name, type){
+    if (isBitmapLayer(layer) && layer.image && isEmptyStyle(layer.style)){
+        // No style => we can directly export the source of this bitmap layer
+        let Xml = require("./xml.js");
+
+        let imgHash = layer.image.sketchObject.hash();
+        let imgRelativePath = "";
+        if (TEMP_CONTEXT.imageHashToFilePath.hasOwnProperty(imgHash)) {
+            imgRelativePath = TEMP_CONTEXT.imageHashToFilePath[imgHash];
+        } else {
+            if (!rootDirPath.endsWith("/")) {
+                rootDirPath += "/";
+            }
+        
+            if ((imagesSubDir.length > 0) && !imagesSubDir.endsWith("/")) {
+                imagesSubDir += "/";
+            }
+        
+            //NB: strange behavior - layer.id is undefined is we try to build a string BUT exists if we use console.log
+            //let toto  = layer.id;console.log("Exists " + layer.id + " -- " + toto);
+            // We add our objectID to avoid conflict between different symbols and/or artboards
+            let imgUid = camelize(name) + "__" + layer.sketchObject.objectID();
+            imgRelativePath = imagesSubDir + imgUid + ".png";
+
+            let imgData = layer.image.nsdata;
+            imgData.writeToFile_atomically(NSString.stringWithFormat("%@%@", rootDirPath, imgRelativePath), false);
+            TEMP_CONTEXT.imageHashToFilePath[imgHash] = imgRelativePath;
+        }
+
+        Xml.xmlAddAttributesToElement(currentXMLElement, ["hasExport", 1, 
+                                                          "type", "image", 
+                                                          "opacity", layer.style.opacity,
+                                                          "topInset", 0, 
+                                                          "bottomInset", 0, 
+                                                          "leftInset", 0,  
+                                                          "rightInset", 0
+                                                         ]);
+                         
+        Xml.xmlAddElement(currentXMLElement, "export", ["format", "png",
+                                                        "size", "1x",
+                                                        "prefix", "",
+                                                        "suffix", "",
+                                                        "file", imgRelativePath
+                                                       ] , null);                                                   
+    } else {
+        // Our layer has a style (fill, border, shadow, blur)
+        // => we export it as an image to obtain an image with style applied
+        treeForceImageExport(layer, currentXMLElement, rootDirPath, imagesSubDir, name, type);
+    }
+}
+
+
 function treeForceImageExport(layer, currentXMLElement, rootDirPath, imagesSubDir, name, type){
     let Xml = require("./xml.js");
     let Utils = require("./utils.js");
@@ -1015,8 +1076,7 @@ function treeForceImageExport(layer, currentXMLElement, rootDirPath, imagesSubDi
     //NB: strange behavior - layer.id is undefined is we try to build a string BUT exists if we use console.log
     //let toto  = layer.id;console.log("Exists " + layer.id + " -- " + toto);
     // We add our objectID to avoid conflict between different symbols and/or artboards
-    name = name + "__" + layer.sketchObject.objectID();
-
+    name = camelize(name) + "__" + layer.sketchObject.objectID();
 
     // NB: Sketch fails to generate big images. Thus, we must ensure that we don't try to export big images
     let numberOfImages = 1;
@@ -1061,7 +1121,7 @@ function treeForceImageExport(layer, currentXMLElement, rootDirPath, imagesSubDi
         exportAttr.push("file");
         exportAttr.push(imagesSubDir + fileName);
 
-       Xml.xmlAddElement(currentXMLElement, "export", exportAttr, null);
+        Xml.xmlAddElement(currentXMLElement, "export", exportAttr, null);
     }
 }
 
@@ -1084,7 +1144,7 @@ function treeAddImageExport(name, layer, currentXMLElement, rootDirPath, imagesS
 
         let exportPath = rootDirPath + imagesSubDir;
         // We add our objectID to avoid conflict between different symbols and/or artboards
-        name = name + "__" + layer.sketchObject.objectID(); 
+        name = camelize(name) + "__" + layer.sketchObject.objectID(); 
 
         let insets = Utils.exportLayerWithUserDefinedExportOptions(layer, exportPath, name, false, false);
 
@@ -1117,7 +1177,7 @@ function treeAddImageExport(name, layer, currentXMLElement, rootDirPath, imagesS
             exportAttr.push("file");
             exportAttr.push(imagesSubDir + fileName);
             
-           Xml.xmlAddElement(currentXMLElement, "export", exportAttr, null);
+            Xml.xmlAddElement(currentXMLElement, "export", exportAttr, null);
         });
 
 
@@ -1844,6 +1904,24 @@ function isSupportedShapeStyle(style) {
     }
 
     return isSupported;
+}
+
+
+function isEmptyStyle(style) {
+    let isEmpty = true;
+
+    if (style) {
+        isEmpty = (
+                   (style.blendingMode == "Normal")
+                   && (style.fills.filter(item => { return item.enabled; }).length == 0)
+                   && (style.borders.filter(item => { return item.enabled; }).length == 0)
+                   && (style.shadows.filter(item => { return item.enabled; }).length == 0)
+                   && (style.innerShadows.filter(item => { return item.enabled; }).length == 0)
+                   && !(style.blur.enabled)
+                  );
+    }
+
+    return isEmpty;
 }
 
 
