@@ -1437,6 +1437,11 @@ function addFontFilesToXml(xmlParent, rootDirPath, fontsSubDir, fontFiles, exclu
 }
 
 
+function swatchNameKey(name) {
+    return name.toLowerCase().replace(/\s+/g, '');
+}
+
+
 function validSwatchName(rawName, colorNames) {
     let name = rawName.replace(/[^a-zA-Z0-9_]/g, ' ').replace(/\s{2,}/g, ' ').trim();
     if (name.match(/^\d/))
@@ -1448,20 +1453,21 @@ function validSwatchName(rawName, colorNames) {
         name = "swatch " + name;
     }
 
+    let keyName = swatchNameKey(name);
     let validName = name;
-    if (colorNames.has(validName.toLowerCase())) {
-        let index = colorNames.get(validName.toLowerCase());
+    if (colorNames.has(keyName)) {
+        let index = colorNames.get(keyName);
         validName = name + " i" + (++index);
 
-        while (colorNames.has(validName.toLowerCase())) {
+        while (colorNames.has(swatchNameKey(validName))) {
             validName = name + " i" + (++index);
         }
 
-        colorNames.set(name.toLowerCase(), index);
+        colorNames.set(keyName, index);
     }
 
     validName = lowerCaseFirstCharater(validName);
-    colorNames.set(validName.toLowerCase(), 0);
+    colorNames.set(swatchNameKey(validName), 0);
 
     return validName;
 }
