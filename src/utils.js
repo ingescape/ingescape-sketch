@@ -155,16 +155,39 @@ Utils.isLine = function(layer) {
 };
 
 
-Utils.MSLayerAbsoluteInfluenceRect = function(nativeLayer) {
+Utils.layerAbsoluteRect = function(layer) {log("test")
     const sketchVersion = require('sketch/dom').version.sketch;
     
-    if (sketchVersion >= 96) {
+    if (sketchVersion >= 97) {
+       let absoluteRect = layer.frame.changeBasis({ from: layer.parent});
+
+       return absoluteRect.asCGRect();
+    } else {
+        // Sketch 96 and below
+        let nativeLayer = layer.sketchObject;
+        return nativeLayer.absoluteRect().rect();
+    }
+};
+
+
+Utils.layerAbsoluteInfluenceRect = function(layer) {
+    const sketchVersion = require('sketch/dom').version.sketch;
+
+    if (sketchVersion >= 97) {
+        //NB: method influenceRectForBoundsInDocument() of MSLayer removed in Sketch 97
+        log("No implementation to get absoluteInfluenceRect in Sketch >= 97");
+        let absoluteRect = layer.frame.changeBasis({ from: layer.parent});
+        return absoluteRect.asCGRect();
+    } else if (sketchVersion >= 96) {
         //NB: method absoluteInfluenceRect() of MSLayer removed in Sketch 96
+        let nativeLayer = layer.sketchObject;
         const document = nativeLayer.documentData();
         const immutable = nativeLayer.immutableModelObject();
         const relativeInfluenceRect = immutable.influenceRectForBoundsInDocument(document);
         return nativeLayer.convertRect_toLayer_(relativeInfluenceRect, null);
     } else {
+        // Sketch 95 and below
+        let nativeLayer = layer.sketchObject;
         return nativeLayer.absoluteInfluenceRect();
     }
 };
@@ -248,11 +271,10 @@ Utils.exportLayerWithFormats = function(layer, exportPath, exportName, formats, 
             }
         }
 
-        let nativeLayer = layerToExport.sketchObject;
-        let absoluteRect = nativeLayer.absoluteRect().rect();
-        let absoluteInfluenceRect = Utils.MSLayerAbsoluteInfluenceRect(nativeLayer);
-
+        let absoluteRect = Utils.layerAbsoluteRect(layerToExport);
+        let absoluteInfluenceRect = Utils.layerAbsoluteInfluenceRect(layerToExport);
         let exportRect = absoluteRect;
+
         if (!preserveFrameSize && !CGRectContainsRect(absoluteRect, absoluteInfluenceRect))
         {
             //TODO: decide if it's better to use the influence rectangle OR to use the union of both rectangles
@@ -278,8 +300,12 @@ Utils.exportLayerWithFormats = function(layer, exportPath, exportName, formats, 
         //log("Export " + exportName + " rect " + exportRect.origin.x + ", " + exportRect.origin.y + ", " + exportRect.size.width + ", " + exportRect.size.height)
         //log(" => insets top=" + topInset + ", bottom=" + bottomInset + " -- left=" + leftInset + ", right=" + rightInset)
      
+
+        let nativeLayer = layerToExport.sketchObject;
         const sketchVersion = require('sketch/dom').version.sketch;
-        if (sketchVersion >= 79) {
+        if (sketchVersion >= 97) {
+            console.warn("Utils.exportLayerWithFormats: can not export images - Sketch >= 97 is not yet supported")
+        } else if (sketchVersion >= 79) {
             // Version 79 of Sketch-Headers does not contain
             // -(id)exportRequestFromExportFormat:(id)arg1 layer:(id)arg2 inRect:(struct CGRect)arg3 useIDForName:(BOOL)arg4;
             formats.forEach(format => {
