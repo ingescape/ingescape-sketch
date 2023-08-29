@@ -33,11 +33,9 @@ Utils.chooseFolder = function() {
     panel.setCanChooseFiles(false);
     panel.setCanCreateDirectories(true);
     
-    if (panel.runModal() == NSModalResponseOK) 
-    {
+    if (panel.runModal() == NSModalResponseOK) {
         let path = panel.URL().path();
-        if (0 == path.indexOf("file://")) 
-        {
+        if (0 == path.indexOf("file://")) {
             //remove the file:// path from string
             path = path.substring(7);
         }
@@ -48,9 +46,7 @@ Utils.chooseFolder = function() {
         return path;
     }
     else
-    {
         return null;
-    }
 };
 
 
@@ -65,8 +61,7 @@ Utils.showInFinder = function(directoryPathOrFilePath) {
     let errorPointer = MOPointer.alloc().init();
     let fileManager = NSFileManager.defaultManager();
     let result = fileManager.attributesOfItemAtPath_error(directoryPathOrFilePath, errorPointer);
-    if (result)
-    {
+    if (result) {
         if (result.isDirectory()) 
             NSWorkspace.sharedWorkspace().openFile_withApplication(directoryPathOrFilePath, "Finder");
         else 
@@ -155,12 +150,12 @@ Utils.isLine = function(layer) {
 };
 
 
-Utils.layerAbsoluteRect = function(layer) {log("test")
+Utils.layerAbsoluteRect = function(layer) {
     const sketchVersion = require('sketch/dom').version.sketch;
     
     if (sketchVersion >= 97) {
+        // Sketch 97: method absoluteRect() of MSLayer has been removed
        let absoluteRect = layer.frame.changeBasis({ from: layer.parent});
-
        return absoluteRect.asCGRect();
     } else {
         // Sketch 96 and below
@@ -174,12 +169,15 @@ Utils.layerAbsoluteInfluenceRect = function(layer) {
     const sketchVersion = require('sketch/dom').version.sketch;
 
     if (sketchVersion >= 97) {
-        //NB: method influenceRectForBoundsInDocument() of MSLayer removed in Sketch 97
-        log("No implementation to get absoluteInfluenceRect in Sketch >= 97");
-        let absoluteRect = layer.frame.changeBasis({ from: layer.parent});
-        return absoluteRect.asCGRect();
+        // Sketch 97: method influenceRectForBoundsInDocument() of MSLayer has been removed
+        let nativeLayer = layer.sketchObject;
+        let request = MSExportRequest.exportRequestsFromLayerAncestry_(nativeLayer.ancestry()).firstObject();
+        request.setRect_(NSZeroRect);
+        let exporter = MSExporter.exporterForRequest_colorSpace_(request, nil);
+        exporter.trimmedBounds();
+        return request.rect();
     } else if (sketchVersion >= 96) {
-        //NB: method absoluteInfluenceRect() of MSLayer removed in Sketch 96
+        // Sketch 96: method absoluteInfluenceRect() of MSLayer has been removed
         let nativeLayer = layer.sketchObject;
         const document = nativeLayer.documentData();
         const immutable = nativeLayer.immutableModelObject();
@@ -199,14 +197,12 @@ Utils.exportLayerWithFormats = function(layer, exportPath, exportName, formats, 
     let leftInset = 0;
     let rightInset = 0;
 
-    if (!layer || !exportPath)
-    {
+    if (!layer || !exportPath) {
         console.warn("Utils.exportLayerWithFormats: layer or exportPath is not defined");
         return [topInset, bottomInset, leftInset, rightInset];
     }
 
-    if (formats.length > 0) 
-    {
+    if (formats.length > 0) {
         let sketchDom = require('sketch/dom');
         let document = sketchDom.getSelectedDocument();
         let layerToExport = layer;
@@ -265,9 +261,8 @@ Utils.exportLayerWithFormats = function(layer, exportPath, exportName, formats, 
                    let angleInDegrees = Math.atan2(pt1Y - pt0Y, pt1X - pt0X) * 180 / Math.PI;
 
                    layerToExport.transform.rotation = angleInDegrees;
-                } else {
+                } else
                     layerToExport.transform.rotation = 0;
-                }
             }
         }
 
@@ -275,8 +270,10 @@ Utils.exportLayerWithFormats = function(layer, exportPath, exportName, formats, 
         let absoluteInfluenceRect = Utils.layerAbsoluteInfluenceRect(layerToExport);
         let exportRect = absoluteRect;
 
-        if (!preserveFrameSize && !CGRectContainsRect(absoluteRect, absoluteInfluenceRect))
-        {
+        //log(exportName + " => absolureRect(" + absoluteRect.origin.x + ", " + absoluteRect.origin.y + ", " + absoluteRect.size.width + ", " + absoluteRect.size.height + ")");
+        //log(exportName + " => absoluteInfluenceRect(" + absoluteInfluenceRect.origin.x + ", " + absoluteInfluenceRect.origin.y + ", " + absoluteInfluenceRect.size.width + ", " + absoluteInfluenceRect.size.height + ")");
+
+        if (!preserveFrameSize && !CGRectContainsRect(absoluteRect, absoluteInfluenceRect)) {
             //TODO: decide if it's better to use the influence rectangle OR to use the union of both rectangles
             //     - influence rectangle: we export the smallest possible image BUT we can have rather high inset values
             //     - union: we can have small inset values BUT we export a larger image
@@ -288,25 +285,51 @@ Utils.exportLayerWithFormats = function(layer, exportPath, exportName, formats, 
             let absoluteRectWidth = Math.ceil(absoluteRect.size.width);
             let absoluteRectHeight = Math.ceil(absoluteRect.size.height);
 
-            topInset = exportRect.origin.y - absoluteRectY;
-            bottomInset = (absoluteRectY + absoluteRectHeight) - (exportRect.origin.y + exportRect.size.height);
-            leftInset = exportRect.origin.x - absoluteRectX;
-            rightInset = (absoluteRectX + absoluteRectWidth) - (exportRect.origin.x + exportRect.size.width);
+            let exportRectX = Utils.roundBy(exportRect.origin.x, 0.5);
+            let exportRectY = Utils.roundBy(exportRect.origin.y, 0.5);
+            let exportRectWidth = Math.ceil(exportRect.size.width);
+            let exportRectHeight = Math.ceil(exportRect.size.height);
 
-//         log("Utils.exportLayerWithFormats: we don't use the frame size of our layer, we will use insets to extend the visual size of our layer. Layer=" + layer.name + ", top=" + topInset + ", bottom=" + bottomInset + ", left=" + leftInset + ", right=" + rightInset);
+            exportRect = NSMakeRect(exportRectX, exportRectY, exportRectWidth, exportRectHeight);
+
+            topInset = exportRectY - absoluteRectY;
+            bottomInset = (absoluteRectY + absoluteRectHeight) - (exportRectY + exportRectHeight);
+            leftInset = exportRectX - absoluteRectX;
+            rightInset = (absoluteRectX + absoluteRectWidth) - (exportRectX + exportRectWidth);
+
+        } else {
+            let exportRectX = Utils.roundBy(exportRect.origin.x, 0.5);
+            let exportRectY = Utils.roundBy(exportRect.origin.y, 0.5);
+            let exportRectWidth = Math.ceil(exportRect.size.width);
+            let exportRectHeight = Math.ceil(exportRect.size.height);
+
+            exportRect = NSMakeRect(exportRectX, exportRectY, exportRectWidth, exportRectHeight);
         }
-//      else log("Utils.exportLayerWithFormats: we use the frame size of our layer to avoid trimming of transparent pixels. Layer=" + layer.name);
 
         //log("Export " + exportName + " rect " + exportRect.origin.x + ", " + exportRect.origin.y + ", " + exportRect.size.width + ", " + exportRect.size.height)
         //log(" => insets top=" + topInset + ", bottom=" + bottomInset + " -- left=" + leftInset + ", right=" + rightInset)
      
-
         let nativeLayer = layerToExport.sketchObject;
         const sketchVersion = require('sketch/dom').version.sketch;
         if (sketchVersion >= 97) {
-            console.warn("Utils.exportLayerWithFormats: can not export images - Sketch >= 97 is not yet supported")
+            // Sketch 97 crashes when we call MSExportFormat.exportableFilenameForLayerName_exportFormat
+            formats.forEach(format => {
+                let exportFormat = (format.sketchObject ? format.sketchObject : format);
+                let exportRequest = MSExportRequest.exportRequestsFromExportableLayer_exportFormats_inRect_useIDForName(nativeLayer, [exportFormat], exportRect, false).firstObject();
+                exportRequest.setShouldTrim(false);
+                let filePath = exportName;
+
+                if (exportFormat.namingScheme() == 0)
+                    filePath += exportFormat.name();
+                else
+                    filePath = exportFormat.name() + filePath;
+                
+                filePath = exportPath + filePath + "." + exportRequest.format();
+
+                document.sketchObject.saveExportRequest_toFile(exportRequest, filePath);
+            });
         } else if (sketchVersion >= 79) {
-            // Version 79 of Sketch-Headers does not contain
+            // Sketch 79 does not contain
             // -(id)exportRequestFromExportFormat:(id)arg1 layer:(id)arg2 inRect:(struct CGRect)arg3 useIDForName:(BOOL)arg4;
             formats.forEach(format => {
                 let exportFormat = (format.sketchObject ? format.sketchObject : format);
@@ -315,6 +338,7 @@ Utils.exportLayerWithFormats = function(layer, exportPath, exportName, formats, 
                 document.sketchObject.saveArtboardOrSlice_toFile(exportRequest, exportPath + MSExportFormat.exportableFilenameForLayerName_exportFormat(exportName, exportFormat));
             });
         } else {
+            // Sketch 78 and below
             formats.forEach(format => {
                 let exportFormat = (format.sketchObject ? format.sketchObject : format);
                 let exportRequest = MSExportRequest.exportRequestFromExportFormat_layer_inRect_useIDForName(exportFormat, nativeLayer, exportRect, false);
@@ -335,8 +359,7 @@ Utils.exportLayerWithFormats = function(layer, exportPath, exportName, formats, 
 
 
 Utils.exportLayerAsPNG = function(layer, maxAtN, exportPath, exportName, preserveFrameSize, applyTransformAndOpacity) {
-    if (!layer || !exportPath)
-    {
+    if (!layer || !exportPath) {
         console.warn("Utils.exportLayerAsPNG: layer or exportPath is not defined");
         return [0, 0, 0, 0];
     }
@@ -359,8 +382,7 @@ Utils.exportLayerAsPNG = function(layer, maxAtN, exportPath, exportName, preserv
 
 
 Utils.exportLayerAsSVG = function(layer, exportPath, exportName, preserveFrameSize, applyTransformAndOpacity) {
-    if (!layer || !exportPath)
-    {
+    if (!layer || !exportPath) {
         console.warn("Utils.exportLayerAsSVG: layer or exportPath is not defined");
         return [0, 0, 0, 0];
     }
@@ -374,8 +396,7 @@ Utils.exportLayerAsSVG = function(layer, exportPath, exportName, preserveFrameSi
 
 
 Utils.exportLayerWithUserDefinedExportOptions = function(layer, exportPath, exportName, preserveFrameSize, applyTransformAndOpacity) {
-    if (!layer || !exportPath)
-    {
+    if (!layer || !exportPath) {
         console.warn("Utils.exportLayerWithUserDefinedExportOptions: layer or exportPath is not defined");
         return [0, 0, 0, 0];
     }

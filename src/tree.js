@@ -1155,31 +1155,65 @@ function treeAddImageExport(name, layer, currentXMLElement, rootDirPath, imagesS
                                                       "leftInset", insets[2], "rightInset", insets[3]
                                                      ]);
 
-        layer.exportFormats.forEach(format => {
-            let exportFormat = format.sketchObject;
-            
-            let fileName = MSExportFormat.exportableFilenameForLayerName_exportFormat(name, exportFormat);
+        const sketchVersion = require('sketch/dom').version.sketch;
+        if (sketchVersion >= 97) {
+            // Sketch 97 crashes when we call MSExportFormat.exportableFilenameForLayerName_exportFormat
+            layer.exportFormats.forEach(format => {
+                let prefix = "";
+                let suffix = "";
 
-            let sizeText = format.size;
-            let fileFormat = format.fileFormat;
-            let prefix = (format.prefix) ? format.prefix : "";
-            let suffix = (format.suffix) ? format.suffix : "";
+                //NB: Sketch 97 bug: when we use a 'primary prefix', suffix has the same value than our prefix
+                if (format.prefix)
+                    prefix = format.prefix;
+                else if (format.suffix)
+                    suffix = format.suffix;
+
+                let fileFormat = format.fileFormat;
+
+                let fileName = prefix + name + suffix + "." + fileFormat;
+                let sizeText = format.size;
+
+                let exportAttr = [];
+                exportAttr.push("format");
+                exportAttr.push(fileFormat);
+                exportAttr.push("size");
+                exportAttr.push(sizeText);
+                exportAttr.push("prefix");
+                exportAttr.push(prefix);
+                exportAttr.push("suffix");
+                exportAttr.push(suffix);
+                exportAttr.push("file");
+                exportAttr.push(imagesSubDir + fileName);
+
+                Xml.xmlAddElement(currentXMLElement, "export", exportAttr, null);
+            });
+        } else {
+            // Sketch 96 and below
+            layer.exportFormats.forEach(format => {
+                let exportFormat = format.sketchObject;
         
-            let exportAttr = [];
-            exportAttr.push("format");
-            exportAttr.push(fileFormat);
-            exportAttr.push("size");
-            exportAttr.push(sizeText);
-            exportAttr.push("prefix");
-            exportAttr.push(prefix);
-            exportAttr.push("suffix");
-            exportAttr.push(suffix);
-            exportAttr.push("file");
-            exportAttr.push(imagesSubDir + fileName);
-            
-            Xml.xmlAddElement(currentXMLElement, "export", exportAttr, null);
-        });
+                let fileName = MSExportFormat.exportableFilenameForLayerName_exportFormat(name, exportFormat);
 
+                let sizeText = format.size;
+                let fileFormat = format.fileFormat;
+                let prefix = (format.prefix) ? format.prefix : "";
+                let suffix = (format.suffix) ? format.suffix : "";
+            
+                let exportAttr = [];
+                exportAttr.push("format");
+                exportAttr.push(fileFormat);
+                exportAttr.push("size");
+                exportAttr.push(sizeText);
+                exportAttr.push("prefix");
+                exportAttr.push(prefix);
+                exportAttr.push("suffix");
+                exportAttr.push(suffix);
+                exportAttr.push("file");
+                exportAttr.push(imagesSubDir + fileName);
+                
+                Xml.xmlAddElement(currentXMLElement, "export", exportAttr, null);
+            });
+        }
 
         succeeded = true;
     }
