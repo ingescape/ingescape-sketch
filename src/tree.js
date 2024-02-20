@@ -404,7 +404,7 @@ function treeIterateLayers(layers, parent, shallIgnoreSymbolMasters, rootDirPath
                         }
                     }
                 }
-                Xml.xmlAddAttributesToElement(xmlCurrent, ["symbolMaster", getUniqueNameFromIndexedData(indexedDataSymbolMaster), "type", actualType]);
+                Xml.xmlAddAttributesToElement(xmlCurrent, ["symbolMaster", getUniqueNameFromIndexedData(indexedDataSymbolMaster), "type", actualType, "symbolMasterWidth", Math.ceil(l.master.frame.width), "symbolMasterHeight", Math.ceil(l.master.frame.height)]);
                 
                 let parentType = getParentTypeFromIndexedData(indexedDataSymbolMaster);
                 if (parentType)
