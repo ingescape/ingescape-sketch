@@ -67,15 +67,16 @@ export function onExportLibraryAsXml(context) {
     let docPath = decodeURI(document.path);
     let docPathElements = docPath.split('/');
     let documentName = "Default";
+    let documentPrefix = documentName;
     if (docPathElements.length > 0) {
-        documentName = Tree.pascalize(docPathElements[docPathElements.length - 1].replace(/.sketch/g,""));
+        let rawDocumentName = docPathElements[docPathElements.length - 1].replace(/.sketch/g,"");
+        documentName = Tree.getNameFromDocumentName(rawDocumentName);
+        documentPrefix = Tree.pascalize(rawDocumentName);
     }
 
-    let libraryName = documentName;
-
     // Init directories
-    let libraryFontsSubDir = "resources/" + libraryName + "_library/fonts/";
-    let libraryImagesSubDir = "resources/" + libraryName + "_library/images/";
+    let libraryFontsSubDir = "resources/" + documentPrefix + "_library/fonts/";
+    let libraryImagesSubDir = "resources/" + documentPrefix + "_library/images/";
     Utils.createDirectoryIfNeeded(path + libraryFontsSubDir);
     Utils.forceNewDirectory(path + libraryImagesSubDir);
 
@@ -85,7 +86,7 @@ export function onExportLibraryAsXml(context) {
 
     //init lib
     let xmlLibraryRoot = NSXMLElement.alloc().initWithName("library");
-    Xml.xmlAddAttributesToElement(xmlLibraryRoot, ["name", libraryName, "sketchVersion", settings.version.sketch]);
+    Xml.xmlAddAttributesToElement(xmlLibraryRoot, ["name", documentName, "sketchVersion", settings.version.sketch]);
 
     //export lib
     let symbols = document.getSymbols();
@@ -138,7 +139,7 @@ export function onExportLibraryAsXml(context) {
     Tree.clearTempContext();
     
     //export model to XML
-    let xmlFilePath = path + libraryName + "_library.xml";
+    let xmlFilePath = path + documentPrefix + "_library.xml";
     Xml.exportXMLToPath(xmlFilePath, xmlLibraryRoot);
 
     Utils.playSoundNamed(Utils.Sounds.Glass);
@@ -173,16 +174,17 @@ export function onExportApplicationAsXml(context) {
     let docPath = decodeURI(document.path);
     let docPathElements = docPath.split('/');
     let documentName = "Default";
-    if (docPathElements.length > 0){
-        documentName = Tree.pascalize(docPathElements[docPathElements.length - 1].replace(/.sketch/g,""));
+    let documentPrefix = documentName;
+    if (docPathElements.length > 0) {
+        let rawDocumentName = docPathElements[docPathElements.length - 1].replace(/.sketch/g,"");
+        documentName = Tree.getNameFromDocumentName(rawDocumentName);
+        documentPrefix = Tree.pascalize(rawDocumentName);
     }
 
-    let appName = documentName;
-
     // Init directories
-    let appFontsSubDir = "resources/" + appName + "_app/fonts/";
-    let appImagesSubDir = "resources/" + appName + "_app/images/";
-    let libraryImagesSubDir = "resources/" + libraryName + "_library/images/";
+    let appFontsSubDir = "resources/" + documentPrefix + "_app/fonts/";
+    let appImagesSubDir = "resources/" + documentPrefix + "_app/images/";
+    let libraryImagesSubDir = "resources/" + documentPrefix + "_library/images/";
     Utils.createDirectoryIfNeeded(path + appFontsSubDir);
     Utils.forceNewDirectory(path + appImagesSubDir);
  
@@ -193,7 +195,7 @@ export function onExportApplicationAsXml(context) {
 
     //init app
     let xmlAppRoot = NSXMLElement.alloc().initWithName("app");
-    Xml.xmlAddAttributesToElement(xmlAppRoot, ["name", appName, "sketchVersion", settings.version.sketch]);
+    Xml.xmlAddAttributesToElement(xmlAppRoot, ["name", documentName, "sketchVersion", settings.version.sketch]);
     
 
     //export app
@@ -260,7 +262,7 @@ export function onExportApplicationAsXml(context) {
     Tree.addColorVariablesToXml(xmlAppRoot); // NB: it must be done after all exports because styles and items may use not imported swatches
     Tree.clearTempContext();
     
-    let xmlFilePath = path + appName + "_app.xml"
+    let xmlFilePath = path + documentPrefix + "_app.xml"
     Xml.exportXMLToPath(xmlFilePath, xmlAppRoot);
 
     Utils.playSoundNamed(Utils.Sounds.Glass);
@@ -287,18 +289,18 @@ function exportWhole(context, exportDir = "", interactionsAllowed = true) {
     let docPath = decodeURI(document.path);
     let docPathElements = docPath.split('/');
     let documentName = "Default";
+    let documentPrefix = documentName;
     if (docPathElements.length > 0){
-        documentName = Tree.pascalize(docPathElements[docPathElements.length - 1].replace(/.sketch/g,""));
+        let rawDocumentName = docPathElements[docPathElements.length - 1].replace(/.sketch/g,"");
+        documentName = Tree.getNameFromDocumentName(rawDocumentName);
+        documentPrefix = Tree.pascalize(rawDocumentName);
     }
 
-    let appName = documentName;
-    let libraryName = documentName;
-
     // Init directories
-    let appFontsSubDir = "resources/" + appName + "_app/fonts/";
-    let appImagesSubDir = "resources/" + appName + "_app/images/";
-    let libraryFontsSubDir = "resources/" + libraryName + "_library/fonts/";
-    let libraryImagesSubDir = "resources/" + libraryName + "_library/images/";
+    let appFontsSubDir = "resources/" + documentPrefix + "_app/fonts/";
+    let appImagesSubDir = "resources/" + documentPrefix + "_app/images/";
+    let libraryFontsSubDir = "resources/" + documentPrefix + "_library/fonts/";
+    let libraryImagesSubDir = "resources/" + documentPrefix + "_library/images/";
     Utils.createDirectoryIfNeeded(path + appFontsSubDir);
     Utils.forceNewDirectory(path + appImagesSubDir);
     Utils.createDirectoryIfNeeded(path + libraryFontsSubDir);
@@ -312,7 +314,7 @@ function exportWhole(context, exportDir = "", interactionsAllowed = true) {
 
     //export library
     let xmlLibraryRoot = NSXMLElement.alloc().initWithName("library");
-    Xml.xmlAddAttributesToElement(xmlLibraryRoot, ["name", libraryName, "sketchVersion", settings.version.sketch]);
+    Xml.xmlAddAttributesToElement(xmlLibraryRoot, ["name", documentName, "sketchVersion", settings.version.sketch]);
     
     let symbols = document.getSymbols();
     let symbolsIDs = [];
@@ -363,7 +365,7 @@ function exportWhole(context, exportDir = "", interactionsAllowed = true) {
     Tree.addFontFilesToXml(xmlLibraryRoot, path, libraryFontsSubDir, documentContext.fontFiles, false);
     Tree.addColorVariablesToXml(xmlLibraryRoot); // NB: it must be done after all exports because styles and items may use not imported swatches
 
-    Xml.exportXMLToPath(path+libraryName+"_library.xml", xmlLibraryRoot);
+    Xml.exportXMLToPath(path + documentPrefix + "_library.xml", xmlLibraryRoot);
 
 
     
@@ -371,7 +373,7 @@ function exportWhole(context, exportDir = "", interactionsAllowed = true) {
     UI.message("⚙️ [2/" + maxNumberOfSteps + "] Exporting application as Ingescape Pivot format. Please wait...");
 
     let xmlAppRoot = NSXMLElement.alloc().initWithName("app");
-    Xml.xmlAddAttributesToElement(xmlAppRoot, ["name", appName, "sketchVersion", settings.version.sketch]);
+    Xml.xmlAddAttributesToElement(xmlAppRoot, ["name", documentName, "sketchVersion", settings.version.sketch]);
 
     for (let i = 0; i < document.pages.length; i++){
         let page = document.pages[i]
@@ -436,7 +438,7 @@ function exportWhole(context, exportDir = "", interactionsAllowed = true) {
     Tree.addColorVariablesToXml(xmlAppRoot); // NB: it must be done after all exports because styles and items may use not imported swatches
     Tree.clearTempContext();
 
-    Xml.exportXMLToPath(path+appName+"_app.xml", xmlAppRoot);
+    Xml.exportXMLToPath(path + documentPrefix + "_app.xml", xmlAppRoot);
 
     if (interactionsAllowed) 
     {

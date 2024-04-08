@@ -1624,8 +1624,24 @@ function camelize(str) {
     });
 }
 
+
 function pascalize(str) {
     return capitalize(camelize(str));
+}
+
+
+function getNameFromDocumentName(str) {
+    str = removeDiacritics(str);
+    str = str.replace(/[^a-zA-Z0-9\-_.\s]/g, "")
+    str = str.trim();
+
+    return str.split(".").map(x => {
+      x = x.trim();
+      return x.replace(/^([a-z])|[\-_\s]+(\w)/g, function(match, p1, p2, offset) {
+        if (p2) return p2.toUpperCase();
+        return p1.toUpperCase();
+      });
+    }).filter(Boolean).join(".");
 }
 
 
@@ -1970,6 +1986,7 @@ module.exports = {
     addFontFilesToXml,
     addSharedTextStylesToXml,
     clearTempContext,
+    getNameFromDocumentName,
     getBackgroundColorAsHexValueOrSwatchReference,
     getFontFilesUsedByLayer,
     getKeyValuesFromIndexedData,
