@@ -87,7 +87,7 @@
       }
     ]
   },
-  "version": "1.0.22",
+  "version": "1.0.23",
   "disableCocoaScriptPreprocessor": true,
   "appcast": "https://raw.githubusercontent.com/ingescape/ingescape-sketch/master/.appcast.xml"
 }
