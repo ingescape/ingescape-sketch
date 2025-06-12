@@ -62,7 +62,13 @@ Utils.showInFinder = function(directoryPathOrFilePath) {
     let fileManager = NSFileManager.defaultManager();
     let result = fileManager.attributesOfItemAtPath_error(directoryPathOrFilePath, errorPointer);
     if (result) {
-        if (result.isDirectory()) 
+        let isDir = false;
+        if (result.respondsToSelector("isDirectory"))
+            isDir = result.isDirectory();
+        else 
+            isDir = (result.NSFileType === NSFileTypeDirectory);
+
+        if (isDir)
             NSWorkspace.sharedWorkspace().openFile_withApplication(directoryPathOrFilePath, "Finder");
         else 
             NSWorkspace.sharedWorkspace().selectFile_inFileViewerRootedAtPath(directoryPathOrFilePath, nil);
