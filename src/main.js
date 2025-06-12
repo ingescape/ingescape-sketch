@@ -133,7 +133,7 @@ export function onExportLibraryAsXml(context) {
         Tree.treeIterateLayers(currentSymbol.layers, xmlComponent, false, path, libraryImagesSubDir, xmlLibraryRoot, documentContext, null);
     }
 
-    Tree.addSharedTextStylesToXml(xmlLibraryRoot);
+    Tree.addSharedTextStylesToXml(xmlLibraryRoot, documentContext);
     Tree.addFontFilesToXml(xmlLibraryRoot, path, libraryFontsSubDir, documentContext.fontFiles, false);
     Tree.addColorVariablesToXml(xmlLibraryRoot); // NB: it must be done after all exports because styles and items may use not imported swatches
     Tree.clearTempContext();
@@ -257,7 +257,7 @@ export function onExportApplicationAsXml(context) {
         }
      }
 
-    Tree.addSharedTextStylesToXml(xmlAppRoot);
+    Tree.addSharedTextStylesToXml(xmlAppRoot, documentContext);
     Tree.addFontFilesToXml(xmlAppRoot, path, appFontsSubDir, documentContext.fontFiles, false);
     Tree.addColorVariablesToXml(xmlAppRoot); // NB: it must be done after all exports because styles and items may use not imported swatches
     Tree.clearTempContext();
@@ -361,7 +361,7 @@ function exportWhole(context, exportDir = "", interactionsAllowed = true) {
         Tree.treeIterateLayers(currentSymbol.layers, xmlComponent, false, path, libraryImagesSubDir, xmlLibraryRoot, documentContext, null);
     }
 
-    Tree.addSharedTextStylesToXml(xmlLibraryRoot);
+    Tree.addSharedTextStylesToXml(xmlLibraryRoot, documentContext);
     Tree.addFontFilesToXml(xmlLibraryRoot, path, libraryFontsSubDir, documentContext.fontFiles, false);
     Tree.addColorVariablesToXml(xmlLibraryRoot); // NB: it must be done after all exports because styles and items may use not imported swatches
 
@@ -433,7 +433,7 @@ function exportWhole(context, exportDir = "", interactionsAllowed = true) {
         }
     }
 
-    Tree.addSharedTextStylesToXml(xmlAppRoot);
+    Tree.addSharedTextStylesToXml(xmlAppRoot, documentContext);
     Tree.addFontFilesToXml(xmlAppRoot, path, appFontsSubDir, documentContext.fontFiles, false);
     Tree.addColorVariablesToXml(xmlAppRoot); // NB: it must be done after all exports because styles and items may use not imported swatches
     Tree.clearTempContext();

@@ -1562,7 +1562,7 @@ function addColorVariablesToXml(xmlParent) {
 }
 
 
-function addSharedTextStylesToXml(xmlParent) {
+function addSharedTextStylesToXml(xmlParent, documentContext) {
     let Xml = require("./xml.js");
     let sketch = require('sketch/dom');
     let document = sketch.getSelectedDocument();
@@ -1598,6 +1598,8 @@ function addSharedTextStylesToXml(xmlParent) {
         styleNames.set(validName.toLowerCase(), 0);
 
         stylesData.push({id: sharedTextStyle.id, name: validName, sharedTextStyle: sharedTextStyle});
+
+        addFontFileToContext(documentContext, styleFontFilePath(sharedTextStyle.style));
     });
 
     // Step 2: export text styles
